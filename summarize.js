@@ -1,7 +1,9 @@
 const puppeteer = require("puppeteer");
 const { OpenAI } = require("openai"); // Correct named import
 require("dotenv").config();
-
+const OLLAMA_API = process.env.OLLAMA_API || "http://localhost:11434/api/chat" //make sure ollama is installed and up and running locally
+const HEADERS = {"Content-Type": "application/json"}
+const MODEL = "llama3.2"
 class Website {
   constructor(url, options = {}) {
     this.url = url;
@@ -150,17 +152,20 @@ function messageFor(website) {
 (async () => {
   try {
     const website = await scrapeWebsite("https://magicpin.in/india/new-delhi/discover/custom_1ef54661-c42e-4b08-841a-98c17ac5f805");
+    const payload = {
+        "model": MODEL,
+        "messages": messageFor(website),
+        "stream": false
+    }
 
-    const client = new OpenAI({
-      apiKey: process.env["OPENAI_API_KEY"],
+    const response = await fetch(OLLAMA_API, {
+        method: 'POST',
+        headers: HEADERS,
+        body: JSON.stringify(payload)
     });
-
-    const response = await client.chat.completions.create({
-      model: "gpt-4o-mini", // Ensure this model is available to your API key
-      messages: messageFor(website),
-    });
-
-    console.log("Summary:\n", response.choices[0].message.content);
+    
+    const data = await response.json();
+    console.log("Summary:\n", data.message.content);
   } catch (error) {
     console.error("Error:", error);
   }
